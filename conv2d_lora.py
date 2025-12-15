@@ -1,0 +1,104 @@
+# Implementation is borrowed from paper "Neuron Linear Transformation: Modeling the Domain Shift for Crowd Counting" https://github.com/taohan10200/NLT
+# Copyright (c) 2021, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+#
+# NVIDIA CORPORATION and its licensors retain all intellectual property
+# and proprietary rights in and to this software, related documentation
+# and any modifications thereto.  Any use, reproduction, disclosure or
+# distribution of this software and related documentation without an express
+# license agreement from NVIDIA CORPORATION is strictly prohibited.
+
+import math
+import torch
+import torch.nn.functional as F
+from torch.nn.parameter import Parameter
+from torch.nn.modules.module import Module
+from torch.nn.modules.utils import _pair
+from torch.nn.init import kaiming_uniform_, zeros_
+
+class _ConvNd_nlt(Module):
+    """The class for meta-transfer convolution"""
+    def __init__(self, in_channels, out_channels, kernel_size, stride,
+                 padding, dilation, transposed, output_padding, groups, bias):
+        super(_ConvNd_nlt, self).__init__()
+        if in_channels % groups != 0:
+            raise ValueError('in_channels must be divisible by groups')
+        if out_channels % groups != 0:
+            raise ValueError('out_channels must be divisible by groups')
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
+        self.dilation = dilation
+        self.transposed = transposed
+        self.output_padding = output_padding
+        self.groups = groups
+        if transposed:
+            self.weight = Parameter(torch.Tensor(
+                in_channels, out_channels // groups, *kernel_size))
+            self.lora_a = Parameter(torch.zeros(in_channels, 3))
+            self.lora_b = Parameter(torch.zeros(3, out_channels // groups))
+        else:
+            self.weight = Parameter(torch.Tensor(
+                out_channels, in_channels // groups, *kernel_size))
+            self.lora_a = Parameter(torch.zeros(out_channels, 3))
+            self.lora_b = Parameter(torch.zeros(3,  in_channels // groups))
+
+        self.weight.requires_grad = False # freeze the source weight
+        if bias:
+            self.bias = Parameter(torch.Tensor(out_channels))
+            self.bias.requires_grad = False
+        else:
+            self.register_parameter('bias', None)
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        n = self.in_channels
+        for k in self.kernel_size:
+            n *= k
+        stdv = 1. / math.sqrt(n)
+        self.weight.data.uniform_(-stdv, stdv)
+        kaiming_uniform_(self.lora_a, a=math.sqrt(5))
+        zeros_(self.lora_b) # init as 0
+        if self.bias is not None:
+            self.bias.data.uniform_(-stdv, stdv)
+
+
+    def extra_repr(self):
+        s = ('{in_channels}, {out_channels}, kernel_size={kernel_size}'
+             ', stride={stride}')
+        if self.padding != (0,) * len(self.padding):
+            s += ', padding={padding}'
+        if self.dilation != (1,) * len(self.dilation):
+            s += ', dilation={dilation}'
+        if self.output_padding != (0,) * len(self.output_padding):
+            s += ', output_padding={output_padding}'
+        if self.groups != 1:
+            s += ', groups={groups}'
+        if self.bias is None:
+            s += ', bias=False'
+        return s.format(**self.__dict__)
+
+class Conv2d_nlt(_ConvNd_nlt):
+    """The class for meta-transfer convolution"""
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1,
+                 padding=0, dilation=1, groups=1, bias=True):
+        kernel_size = _pair(kernel_size)
+        stride = _pair(stride)
+        padding = _pair(padding)
+        dilation = _pair(dilation)
+        super(Conv2d_nlt, self).__init__(
+            in_channels, out_channels, kernel_size, stride, padding, dilation,
+            False, _pair(0), groups, bias)
+
+    def forward(self, inp):
+        # LoRA: W_t = W_s + BA
+        new_weight = (self.lora_a @ self.lora_b).unsqueeze(-1).unsqueeze(-1).expand(self.weight.shape) + self.weight
+
+        if self.bias is not None:
+            new_bias = self.bias
+        else:
+            new_bias = None
+
+        return F.conv2d(inp, new_weight, new_bias, self.stride,
+                         self.padding, self.dilation, self.groups)

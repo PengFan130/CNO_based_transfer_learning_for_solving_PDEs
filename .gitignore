@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.pth
+*.h5
+data/   # 如果你的数据在这个文件夹，且很大，建议忽略
+results/ # 跑出来的结果图如果很多，也可以忽略
+.DS_Store
