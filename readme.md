@@ -6,9 +6,9 @@ This repository is an extension of the original **Conditional Neural Operator (C
 
 Beyond the original CNO training, this repository supports three transfer learning strategies to adapt a Source Model to a Target Model:
 
-1.  **Fine-tuning (Full)**: Updates all parameters of the pre-trained model on the new dataset.
+1.  **Fine-tuning **: Updates the last few layers of the pre-trained model on the new dataset.
 2.  **LoRA (Low-Rank Adaptation)**: Freezes the backbone and injects trainable rank-decomposition matrices, reducing the number of trainable parameters.
-3.  **NLT (Non-Linear Transformation)**: A specialized transfer strategy constraining NLT weights and biases for efficient adaptation.
+3.  **NLT (Neuron Linear Transformation)**: A specialized transfer strategy performing a linear transformation on the parameters of the source model for efficient adaptation.
 
 -----
 
@@ -44,17 +44,22 @@ After obtaining a pre-trained model, choose one of the three strategies to trans
 
 #### Option A: Full Fine-tuning
 
-To perform standard fine-tuning (updating all weights), run:
+To perform fine-tuning, run:
 
 ```bash
 python Finetune_CNO.py
 ```
 
-*This script loads the source model and resumes training on the target dataset with a lower learning rate.*
+*This script loads the source model and resumes training on the target dataset. This script also provides the flexibility to selectively fine-tune specific layers*
 
 #### Option B: LoRA or NLT
 
-To use parameter-efficient transfer learning strategies (LoRA or NLT), run the transfer script. You can specify the strategy within the script or via arguments (depending on your implementation).
+To select the strategy, adjust the imports in `CNOBenchmarks.py`:
+
+- For **NLT**: Use `from CNOModule_nlt import CNO as cno_nlt` (Line 15).
+- For **LoRA**: Use `from CNOModule_lora import CNO as cno_nlt` (Line 17).
+
+Then, use parameter-efficient transfer learning strategies (LoRA or NLT), run the transfer script. 
 
 ```bash
 # Example for LoRA or NLT strategy
@@ -62,7 +67,7 @@ python Transfer_CNO.py
 ```
 
   * **LoRA:** Inject low-rank adapters.
-  * **NLT:** Constrains NLT weights ($\approx 1$) and biases ($\approx 0$) for stable transfer.
+  * **NLT:** Neuron Linear Transformation.
 
 -----
 
@@ -85,17 +90,18 @@ Set the `which_example` variable in the scripts to select the PDE:
 
 | `which_example` | PDE |
 | :--- | :--- |
-| `poisson` | Poisson equation |
-| `wave_0_5` | Wave equation |
-| `shear_layer` | Navier-Stokes equations |
-| `darcy` | Darcy Flow |
-| ... | (See `CNOBenchmarks.py` for full list) |
+| `apens`         | Navier-Stokes equations                |
+| `ks` | Kuramoto-Sivashinsky equation |
+| `burss`         | Brusselator diffusion-reaction system  |
+| ...             | (See `CNOBenchmarks.py` for full list) |
 
 **Data Download:**
-The datasets can be downloaded from [Zenodo](https://zenodo.org/records/10406879) (\~2.4GB).
+The CNO datasets can be downloaded from [Zenodo](https://zenodo.org/records/10406879) (\~2.4GB).
+
+The datasets used in this paper are **available for download at** [https://drive.google.com/file/d/1lRxDi9tzx_DqlMpvhsTvy8jNGsqspZ4U/view?usp=sharing] (~1.4GB).
 
 -----
 
 ## Acknowledgments
 
-This code is based on the original [CNO implementation](https://www.google.com/search?q=https://github.com/MachineLearningLifeScience/CNO) and uses filter implementations from [StyleGAN3](https://github.com/NVlabs/stylegan3).
+This code is based on the original [CNO implementation](https://www.google.com/search?q=https://github.com/MachineLearningLifeScience/CNO) and uses NLT implementations from [NLT](https://github.com/taohan10200/NLT).
