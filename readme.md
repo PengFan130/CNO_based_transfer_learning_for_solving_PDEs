@@ -1,6 +1,6 @@
-# CNO2d with Transfer Learning
+# CNO-based Transfer Learning for Solving PDEs
 
-This repository is an extension of the original **Conditional Neural Operator (CNO)** implementation (NeurIPS 2023). We have integrated a **Transfer Learning** framework to efficiently adapt pre-trained CNO models to new downstream tasks.
+This is our code for paper "Convolutional-neural-operator-based transfer learning for solving PDEs". This repository is an extension of the original **Conditional Neural Operator (CNO)** implementation (NeurIPS 2023). We have integrated a **Transfer Learning** framework to efficiently adapt pre-trained CNO models to new downstream tasks.
 
 ## 🚀 Key Features: Transfer Learning Strategies
 
@@ -67,7 +67,7 @@ python Transfer_CNO.py
 ```
 
   * **LoRA:** Inject low-rank adapters.
-  * **NLT:** Neuron Linear Transformation.
+  * **NLT:** Neuron linear transformation.
 
 -----
 
@@ -82,7 +82,7 @@ Common hyperparameters for the CNO architecture:
 | `N_layers` | Number of up/downsampling blocks |
 | `channel_multiplier` | Regulates network width |
 | `in_size` | Resolution of the computational grid |
-| `activation` | `cno_lrelu` (recommended) or `lrelu` |
+| `activation` | `cno_torch_lrelu` (recommended) or `lrelu` |
 
 ### Benchmark Datasets
 
@@ -105,3 +105,19 @@ The datasets used in this paper are **available for download at** [https://drive
 ## Acknowledgments
 
 This code is based on the original [CNO implementation](https://www.google.com/search?q=https://github.com/MachineLearningLifeScience/CNO) and uses NLT implementations from [NLT](https://github.com/taohan10200/NLT).
+
+## Citation
+
+If you use our models, code, or datasets, please consider citing our paper:
+
+```bash
+@misc{fan2025cnobasedtransferlearning,
+      title={Convolutional-neural-operator-based transfer learning for solving PDEs}, 
+      author={Peng Fan and Guofei Pang},
+      year={2025},
+      eprint={2512.17969},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2512.17969}, 
+}
+```
